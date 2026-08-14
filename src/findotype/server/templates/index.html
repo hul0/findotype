@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Findotype — Medical Knowledge Base & Clinical Symptom Explorer</title>
+  <meta name="description" content="Explore diseases, clinical symptoms, and medical knowledge in clear human-friendly language.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #fafafa;
+      --surface-card: #ffffff;
+      --border: #e4e4e7;
+      --border-dark: #18181b;
+      --text: #09090b;
+      --text-muted: #52525b;
+      --text-dim: #71717a;
+      --accent: #000000;
+      --accent-contrast: #ffffff;
+      --tag-bg: #f4f4f5;
+      --tag-text: #18181b;
+      --tag-border: #e4e4e7;
+      --highlight: #f4f4f5;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #09090b;
+        --surface: #121215;
+        --surface-card: #18181b;
+        --border: #27272a;
+        --border-dark: #e4e4e7;
+        --text: #f4f4f5;
+        --text-muted: #a1a1aa;
+        --text-dim: #71717a;
+        --accent: #ffffff;
+        --accent-contrast: #000000;
+        --tag-bg: #27272a;
+        --tag-text: #f4f4f5;
+        --tag-border: #3f3f46;
+        --highlight: #27272a;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background-color: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background-color: var(--accent);
+      color: var(--accent-contrast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      border-radius: 4px;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-tag {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+      background-color: var(--surface-card);
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 0.5rem 0.9rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .nav-btn:hover {
+      color: var(--text);
+      background-color: var(--highlight);
+    }
+
+    .nav-btn.active {
+      color: var(--accent-contrast);
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 5rem;
+    }
+
+    .view-panel {
+      display: none;
+    }
+
+    .view-panel.active {
+      display: block;
+    }
+
+    .hero-title {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      margin-bottom: 2rem;
+      max-width: 780px;
+      line-height: 1.6;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .input-field {
+      flex: 1;
+      background-color: var(--surface-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.85rem 1.1rem;
+      font-size: 1rem;
+      border-radius: 4px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .input-field:focus {
+      border-color: var(--accent);
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: var(--accent-contrast);
+      border: 1px solid var(--accent);
+      padding: 0.85rem 1.75rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.85;
+    }
+
+    .sample-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .chip-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-right: 0.25rem;
+    }
+
+    .chip-btn {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.35rem 0.75rem;
+      font-size: 0.85rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip-btn:hover {
+      background-color: var(--highlight);
+      border-color: var(--border-dark);
+    }
+
+    .disclaimer-banner {
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      padding: 0.9rem 1.1rem;
+      border-radius: 4px;
+      margin-bottom: 2rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .card {
+      background-color: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      transition: border-color 0.15s;
+    }
+
+    .card:hover {
+      border-color: var(--border-dark);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+      gap: 1rem;
+    }
+
+    .disease-heading {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .disease-heading:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .match-pill {
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      padding: 0.25rem 0.65rem;
+      border-radius: 4px;
+      background-color: var(--surface);
+      white-space: nowrap;
+    }
+
+    .symptom-tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0.75rem 0;
+    }
+
+    .symptom-pill {
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.3rem 0.65rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .symptom-pill.matched {
+      background-color: var(--highlight);
+      border-color: var(--border-dark);
+      color: var(--text);
+    }
+
+    .symptom-pill.unmatched {
+      background-color: transparent;
+      border-color: var(--border);
+      color: var(--text-dim);
+      text-decoration: line-through;
+    }
+
+    .definition-paragraph {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-top: 0.75rem;
+    }
+
+    .section-subtitle {
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 0.6rem;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+    }
+
+    .table th, .table td {
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .table th {
+      background-color: var(--surface);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background-color: var(--surface-card);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      border-radius: 4px;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 0.25rem;
+    }
+
+    .category-link {
+      display: block;
+      padding: 0.6rem 0.85rem;
+      margin: 0.35rem 0;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .category-link:hover {
+      background-color: var(--highlight);
+      border-color: var(--border-dark);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 1.1rem;
+      height: 1.1rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border-radius: 3px;
+      background-color: var(--tag-bg);
+      color: var(--tag-text);
+      border: 1px solid var(--tag-border);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <div class="brand-logo">F</div>
+        <div class="brand-title">Findotype</div>
+        <div class="brand-tag">Medical Knowledge Base</div>
+      </a>
+      <nav>
+        <button class="nav-btn active" onclick="switchView('matcher')">Symptom Matcher</button>
+        <button class="nav-btn" onclick="switchView('search')">Search Diseases</button>
+        <button class="nav-btn" onclick="switchView('inspector')">Disease Details</button>
+        <button class="nav-btn" onclick="switchView('stats')">Knowledge Base</button>
+        <a class="nav-btn" href="/docs" target="_blank">Developer API</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- TAB 1: PHENOTYPE MATCHER -->
+    <section id="view-matcher" class="view-panel active">
+      <h1 class="hero-title">Clinical Symptom & Phenotype Explorer</h1>
+      <p class="hero-desc">
+        Type symptoms in everyday natural language to find candidate medical conditions documented with matching signs and phenotypes in the ontology knowledge graph.
+      </p>
+
+      <div class="search-box">
+        <input type="text" id="match-input" class="input-field" placeholder="Enter your symptoms (e.g. 'I have fever, cough, nausea' or 'chest pain, shortness of breath')" value="I have fever, cough, nausea" onkeydown="if(event.key==='Enter') runMatch()">
+        <button class="btn-primary" onclick="runMatch()">Find Conditions</button>
+      </div>
+
+      <div class="sample-chips">
+        <span class="chip-label">Try common symptom groups:</span>
+        <button class="chip-btn" onclick="setMatchQuery('I have fever, cough, nausea')">Fever, cough, nausea</button>
+        <button class="chip-btn" onclick="setMatchQuery('joint pain, rash, fever, fatigue')">Joint pain, rash, fever, fatigue</button>
+        <button class="chip-btn" onclick="setMatchQuery('shortness of breath, chest pain, coughing')">Shortness of breath, chest pain</button>
+        <button class="chip-btn" onclick="setMatchQuery('jaundice, abdominal pain, fatigue')">Jaundice, abdominal pain</button>
+      </div>
+
+      <div class="disclaimer-banner">
+        <strong>Medical Notice:</strong> This explorer displays matching patterns from published medical ontologies (Disease Ontology and Human Phenotype Ontology). It is an informational reference and <strong>not a medical diagnosis</strong>. Always consult a qualified physician for clinical care.
+      </div>
+
+      <div id="match-results"></div>
+    </section>
+
+    <!-- TAB 2: DISEASE SEARCH -->
+    <section id="view-search" class="view-panel">
+      <h1 class="hero-title">Search Disease Knowledge</h1>
+      <p class="hero-desc">
+        Search thousands of diseases, formal medical definitions, clinical synonyms, and external cross-references.
+      </p>
+
+      <div class="search-box">
+        <input type="text" id="search-input" class="input-field" placeholder="Search by disease name, synonym, or keyword (e.g. 'tuberculosis', 'angiosarcoma', 'asthma')" value="tuberculosis" onkeydown="if(event.key==='Enter') runSearch()">
+        <button class="btn-primary" onclick="runSearch()">Search</button>
+      </div>
+
+      <div class="sample-chips">
+        <span class="chip-label">Suggestions:</span>
+        <button class="chip-btn" onclick="setSearchQuery('angiosarcoma')">Angiosarcoma</button>
+        <button class="chip-btn" onclick="setSearchQuery('tuberculosis')">Tuberculosis</button>
+        <button class="chip-btn" onclick="setSearchQuery('myocardial infarction')">Myocardial Infarction</button>
+        <button class="chip-btn" onclick="setSearchQuery('melanoma')">Melanoma</button>
+      </div>
+
+      <div id="search-results"></div>
+    </section>
+
+    <!-- TAB 3: DISEASE INSPECTOR -->
+    <section id="view-inspector" class="view-panel">
+      <h1 class="hero-title">Disease Details & Hierarchy</h1>
+      <p class="hero-desc">
+        Review formal definitions, scope-grouped alternative names, external medical databases, and parent/subtype classifications.
+      </p>
+
+      <div class="search-box">
+        <input type="text" id="inspect-input" class="input-field" placeholder="Enter condition name or identifier (e.g. 'angiosarcoma' or 'DOID:0001816')" value="DOID:0001816" onkeydown="if(event.key==='Enter') inspectDisease()">
+        <button class="btn-primary" onclick="inspectDisease()">View Details</button>
+      </div>
+
+      <div id="inspect-results"></div>
+    </section>
+
+    <!-- TAB 4: KNOWLEDGE BASE STATS -->
+    <section id="view-stats" class="view-panel">
+      <h1 class="hero-title">Knowledge Base & Datasets</h1>
+      <p class="hero-desc">
+        Overview of ingested medical ontologies, release versions, licensing, and relational graph statistics.
+      </p>
+
+      <div id="stats-container">
+        <div style="padding: 3rem; text-align: center;"><div class="loading-spinner"></div> Loading Knowledge Base metrics...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Friendly mapping for database names
+    const DB_NAMES = {
+      'MESH': 'Medical Subject Headings (MeSH)',
+      'ICD10CM': 'ICD-10 Clinical Modification',
+      'ICD10': 'ICD-10',
+      'ICD9CM': 'ICD-9 Clinical Modification',
+      'UMLS': 'Unified Medical Language System (UMLS)',
+      'UMLS_CUI': 'UMLS Concept ID',
+      'NCI': 'National Cancer Institute (NCI)',
+      'OMIM': 'Online Mendelian Inheritance in Man (OMIM)',
+      'MIM': 'Mendelian Inheritance in Man (MIM)',
+      'ORDO': 'Orphanet Rare Diseases (ORDO)',
+      'SNOMEDCT_US': 'SNOMED Clinical Terms',
+      'SNOMEDCT_US_2025_09_01': 'SNOMED CT',
+      'ICDO': 'International Classification of Diseases for Oncology'
+    };
+
+    function formatDbName(db) {
+      return DB_NAMES[db] || db;
+    }
+
+    function capitalizeWords(str) {
+      if (!str) return '';
+      return str.replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    function switchView(viewName) {
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      
+      const target = document.getElementById('view-' + viewName);
+      if (target) target.classList.add('active');
+      
+      event.target.classList.add('active');
+
+      if (viewName === 'stats') {
+        loadStats();
+      }
+    }
+
+    function setMatchQuery(q) {
+      document.getElementById('match-input').value = q;
+      runMatch();
+    }
+
+    function setSearchQuery(q) {
+      document.getElementById('search-input').value = q;
+      runSearch();
+    }
+
+    async function runMatch() {
+      const query = document.getElementById('match-input').value.trim();
+      if (!query) return;
+
+      const container = document.getElementById('match-results');
+      container.innerHTML = '<div style="padding: 3rem; text-align: center;"><div class="loading-spinner"></div> Analyzing clinical symptoms against disease relationships...</div>';
+
+      try {
+        const res = await fetch(`/api/match?symptoms=${encodeURIComponent(query)}&limit=15`);
+        const data = await res.json();
+
+        if (!data.candidate_diseases || data.candidate_diseases.length === 0) {
+          container.innerHTML = '<div class="card"><p>No conditions found with matching recorded symptoms. Try broader symptom terms.</p></div>';
+          return;
+        }
+
+        let html = `
+          <div class="card" style="background-color: var(--surface);">
+            <div class="section-subtitle">Identified Symptoms in Your Query (${data.extracted_phenotypes.length}):</div>
+            <div class="symptom-tag-list">
+              ${data.extracted_phenotypes.map(p => `
+                <span class="symptom-pill matched"><strong>${p.term_name}</strong></span>
+              `).join('')}
+            </div>
+          </div>
+          <h2 style="font-size: 1.2rem; font-weight: 700; margin: 2rem 0 1rem;">Candidate Conditions (${data.candidate_diseases.length}):</h2>
+        `;
+
+        data.candidate_diseases.forEach((d) => {
+          const matchLabel = d.matched_count === d.total_query_count 
+            ? `Matches all ${d.matched_count} symptoms (100%)`
+            : `Matches ${d.matched_count} of ${d.total_query_count} symptoms (${Math.round(d.query_coverage_pct)}%)`;
+
+          html += `
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <a class="disease-heading" onclick="inspectDirect('${d.disease_id}')">${capitalizeWords(d.disease_name)}</a>
+                </div>
+                <div class="match-pill">
+                  ${matchLabel}
+                </div>
+              </div>
+
+              <div class="symptom-tag-list">
+                ${d.matched_phenotypes.map(m => `
+                  <span class="symptom-pill matched">✓ ${m.name}</span>
+                `).join('')}
+                ${d.unmatched_phenotypes.map(u => `
+                  <span class="symptom-pill unmatched">✗ ${u.name}</span>
+                `).join('')}
+              </div>
+
+              ${d.definition ? `<p class="definition-paragraph">${d.definition}</p>` : ''}
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<div class="card" style="color:red;">Error fetching match results: ${err.message}</div>`;
+      }
+    }
+
+    async function runSearch() {
+      const q = document.getElementById('search-input').value.trim();
+      if (!q) return;
+
+      const container = document.getElementById('search-results');
+      container.innerHTML = '<div style="padding: 3rem; text-align: center;"><div class="loading-spinner"></div> Searching medical knowledge base...</div>';
+
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=25`);
+        const results = await res.json();
+
+        if (!results || results.length === 0) {
+          container.innerHTML = '<div class="card"><p>No matching diseases found. Try alternative keywords or medical synonyms.</p></div>';
+          return;
+        }
+
+        let html = `<div style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.25rem;">Found ${results.length} matching conditions:</div>`;
+        results.forEach(r => {
+          let matchHumanType = 'Exact Name Match';
+          if (r.match_type === 'SYNONYM') matchHumanType = `Matched Synonym: "${r.matched_text}"`;
+          else if (r.match_type === 'DEFINITION') matchHumanType = `Matched in Description`;
+          else if (r.match_type === 'PREFIX_NAME') matchHumanType = `Name Match`;
+
+          html += `
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <a class="disease-heading" onclick="inspectDirect('${r.id}')">${capitalizeWords(r.name)}</a>
+                </div>
+                <span class="badge">${matchHumanType}</span>
+              </div>
+              ${r.definition ? `<p class="definition-paragraph">${r.definition}</p>` : ''}
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<div class="card" style="color:red;">Error searching: ${err.message}</div>`;
+      }
+    }
+
+    function inspectDirect(doid) {
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-inspector').classList.add('active');
+      document.getElementById('inspect-input').value = doid;
+      inspectDisease();
+    }
+
+    async function inspectDisease() {
+      const doid = document.getElementById('inspect-input').value.trim();
+      if (!doid) return;
+
+      const container = document.getElementById('inspect-results');
+      container.innerHTML = '<div style="padding: 3rem; text-align: center;"><div class="loading-spinner"></div> Loading condition details...</div>';
+
+      try {
+        const res = await fetch(`/api/diseases/${encodeURIComponent(doid)}`);
+        if (!res.ok) {
+          // If not found by ID, try searching for the term
+          const searchRes = await fetch(`/api/search?q=${encodeURIComponent(doid)}&limit=1`);
+          const searchData = await searchRes.json();
+          if (searchData && searchData.length > 0) {
+            return inspectDirect(searchData[0].id);
+          }
+          container.innerHTML = `<div class="card"><p>Could not find information for "${doid}". Please check the spelling or search for the condition first.</p></div>`;
+          return;
+        }
+        const d = await res.json();
+
+        let html = `
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-header">
+              <div>
+                <h2 style="font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em;">${capitalizeWords(d.name)}</h2>
+              </div>
+            </div>
+
+            ${d.definition && d.definition.text ? `
+              <div style="margin: 1.25rem 0;">
+                <div class="section-subtitle">Medical Definition</div>
+                <p class="definition-paragraph" style="font-size: 1.05rem; color: var(--text);">${d.definition.text}</p>
+              </div>
+            ` : ''}
+
+            <div class="grid-2" style="margin-top: 2rem;">
+              <div>
+                <div class="section-subtitle">Alternative Names & Synonyms (${d.synonyms.length})</div>
+                ${d.synonyms.length ? `
+                  <table class="table">
+                    <thead><tr><th>Synonym</th><th>Scope</th></tr></thead>
+                    <tbody>
+                      ${d.synonyms.map(s => `
+                        <tr>
+                          <td><strong>${capitalizeWords(s.synonym)}</strong></td>
+                          <td><span class="badge">${capitalizeWords(s.scope.toLowerCase())}</span></td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                ` : '<p style="color:var(--text-muted); font-size: 0.9rem;">No alternative names listed.</p>'}
+              </div>
+
+              <div>
+                <div class="section-subtitle">External Medical Databases (${d.cross_references.length})</div>
+                ${d.cross_references.length ? `
+                  <table class="table">
+                    <thead><tr><th>Medical Authority</th><th>Reference Code</th></tr></thead>
+                    <tbody>
+                      ${d.cross_references.slice(0, 12).map(x => `
+                        <tr>
+                          <td><strong>${formatDbName(x.db)}</strong></td>
+                          <td><code>${x.accession}</code></td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                ` : '<p style="color:var(--text-muted); font-size: 0.9rem;">No external references recorded.</p>'}
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top: 2rem;">
+              <div>
+                <div class="section-subtitle">Broader Medical Categories (Parents)</div>
+                ${d.parents.length ? d.parents.map(p => `
+                  <a class="category-link" onclick="inspectDirect('${p.id}')">
+                    ▲ ${capitalizeWords(p.name)}
+                  </a>
+                `).join('') : '<p style="color:var(--text-muted); font-size: 0.9rem;">Top-level category.</p>'}
+              </div>
+
+              <div>
+                <div class="section-subtitle">Specific Subtypes & Related Conditions (Children)</div>
+                ${d.children.length ? `
+                  ${d.children.slice(0, 10).map(c => `
+                    <a class="category-link" onclick="inspectDirect('${c.id}')">
+                      ▼ ${capitalizeWords(c.name)}
+                    </a>
+                  `).join('')}
+                  ${d.children.length > 10 ? `<div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">+ ${d.children.length - 10} more specific subtypes</div>` : ''}
+                ` : '<p style="color:var(--text-muted); font-size: 0.9rem;">No subtypes listed.</p>'}
+              </div>
+            </div>
+
+            ${d.relationships && d.relationships.length ? `
+              <div style="margin-top: 2rem;">
+                <div class="section-subtitle">Associated Clinical Features & Triggers (${d.relationships.length})</div>
+                <table class="table">
+                  <thead><tr><th>Relationship Type</th><th>Associated Entity</th></tr></thead>
+                  <tbody>
+                    ${d.relationships.map(r => `
+                      <tr>
+                        <td><strong>${capitalizeWords(r.predicate_label || r.predicate_id)}</strong></td>
+                        <td>${capitalizeWords(r.object_name || r.object_id)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : ''}
+
+          </div>
+        `;
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<div class="card" style="color:red;">Error loading details: ${err.message}</div>`;
+      }
+    }
+
+    async function loadStats() {
+      const container = document.getElementById('stats-container');
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+
+        let html = `
+          <div class="grid-3">
+            <div class="stat-card">
+              <div class="stat-number">${data.counts.entities.toLocaleString()}</div>
+              <div class="stat-label">Total Medical Concepts</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${data.counts.diseases.toLocaleString()}</div>
+              <div class="stat-label">Diseases & Conditions</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${data.counts.relationships.toLocaleString()}</div>
+              <div class="stat-label">Graph Connections</div>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="stat-card">
+              <div class="stat-number">${data.counts.synonyms.toLocaleString()}</div>
+              <div class="stat-label">Medical Synonyms</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${data.counts.definitions.toLocaleString()}</div>
+              <div class="stat-label">Formal Definitions</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${data.counts.cross_references.toLocaleString()}</div>
+              <div class="stat-label">Authority Cross-References</div>
+            </div>
+          </div>
+
+          <h2 style="font-size: 1.25rem; font-weight: 700; margin: 2.5rem 0 1rem;">Integrated Medical Ontologies:</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Ontology / Dataset</th><th>Release Version</th><th>License</th><th>Release Date</th></tr>
+            </thead>
+            <tbody>
+              ${data.datasets.map(d => `
+                <tr>
+                  <td><strong>${d.name}</strong></td>
+                  <td>${d.version || 'Latest'}</td>
+                  <td>${d.license || 'Creative Commons CC0'}</td>
+                  <td>${d.release_date || 'N/A'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="grid-2" style="margin-top: 2rem;">
+            <div>
+              <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem;">Major Concept Vocabularies:</h2>
+              <table class="table">
+                <thead><tr><th>Vocabulary Domain</th><th>Concept Count</th></tr></thead>
+                <tbody>
+                  ${Object.entries(data.namespaces).slice(0, 8).map(([ns, cnt]) => `
+                    <tr><td><strong>${ns === 'HP' ? 'Human Phenotypes (HPO)' : ns === 'DOID' ? 'Human Diseases (DOID)' : ns === 'UBERON' ? 'Anatomy (UBERON)' : ns === 'NCBITaxon' ? 'Pathogens & Organisms' : ns === 'SYMP' ? 'Clinical Symptoms' : ns === 'CHEBI' ? 'Chemicals & Drugs' : ns}</strong></td><td>${cnt.toLocaleString()}</td></tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem;">Common Relationship Types:</h2>
+              <table class="table">
+                <thead><tr><th>Relationship Connection</th><th>Total Links</th></tr></thead>
+                <tbody>
+                  ${Object.entries(data.top_predicates).slice(0, 8).map(([pred, cnt]) => `
+                    <tr><td><strong>${capitalizeWords(pred)}</strong></td><td>${cnt.toLocaleString()}</td></tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<div class="card" style="color:red;">Error loading metrics: ${err.message}</div>`;
+      }
+    }
+
+    // Auto-run initial match on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      runMatch();
+    });
+  </script>
+</body>
+</html>

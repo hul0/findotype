@@ -109,6 +109,14 @@ python -m findotype search "angiosarcoma" --json
 python -m findotype inspect DOID:0001816
 ```
 
+### 9. Launch Monochrome Web UI & Swagger REST API
+```bash
+python -m findotype serve --port 8000
+```
+* **Web UI (Human Interface)**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/) (Strict monochrome aesthetic, zero gradients, clinical symptom matcher, disease search, deep inspector, and knowledge base metrics).
+* **Interactive Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* **OpenAPI 3.0 Specification**: [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
+
 ---
 
 ## Python API Usage
@@ -225,6 +233,12 @@ Findotype's relational schema is ontology-agnostic. To add support for new ontol
 1. Subclass [`BaseImporter`](file:///home/johan/CRINE/findotype/src/findotype/importers/base.py) in `src/findotype/importers/<dataset>.py`.
 2. Register any custom CURIE prefixes in [`src/findotype/ontology/curie.py`](file:///home/johan/CRINE/findotype/src/findotype/ontology/curie.py).
 3. Ingest into the common `entities`, `relationships`, `synonyms`, and `cross_references` tables with the appropriate namespace.
+
+---
+
+## Feature Roadmap
+
+See [`FEATURES.md`](FEATURES.md) for a comprehensive list of planned capabilities across clinical intelligence, graph traversals, data formats, developer ergonomics, and CLI tooling.
 
 ---
 

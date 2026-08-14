@@ -582,6 +582,18 @@ def cmd_match(args) -> int:
     return 0
 
 
+def cmd_serve(args) -> int:
+    """Launch Findotype web interface, OpenAPI schema, and Swagger UI."""
+    from findotype.server.app import run_server
+
+    db_path = Path(args.db)
+    if not db_path.exists():
+        print(f"Warning: Database file {db_path} does not exist. Initializing empty database.", file=sys.stderr)
+
+    run_server(host=args.host, port=args.port, db_path=db_path)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build command line argument parser."""
     common_parser = argparse.ArgumentParser(add_help=False)
@@ -594,6 +606,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
+
+    # serve (Web UI + REST API + Swagger UI)
+    p_serve = subparsers.add_parser("serve", help="Launch the Findotype Monochrome Web UI and Swagger REST API server")
+    p_serve.add_argument("-p", "--port", type=int, default=8000, help="Port to listen on (default: 8000)")
+    p_serve.add_argument("-H", "--host", default="127.0.0.1", help="Host interface to bind (default: 127.0.0.1)")
+    p_serve.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite database")
 
     # download
     p_down = subparsers.add_parser("download", parents=[common_parser], help="Download the latest Disease Ontology dataset")
@@ -632,7 +650,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_insp.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite database")
 
     # match (symptoms to diseases)
-    p_match = subparsers.add_parser("match", parents=[common_parser], help="Match clinical symptoms to candidate diseases with match %")
+    p_match = subparsers.add_parser("match", parents=[common_parser], help="Match clinical symptoms to candidate diseases with coverage and ranking")
     p_match.add_argument("symptoms", help="Natural language symptoms string (e.g. 'I have fever, cough, nausea')")
     p_match.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite database")
     p_match.add_argument("-n", "--limit", type=int, default=10, help="Maximum candidate diseases to return")
@@ -650,6 +668,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     commands = {
+        "serve": cmd_serve,
         "download": cmd_download,
         "validate": cmd_validate,
         "import": cmd_import,
