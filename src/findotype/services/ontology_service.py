@@ -31,7 +31,7 @@ class Findotype:
 
     Example:
         >>> from findotype import Findotype
-        >>> engine = Findotype("disease_ontology.db")
+        >>> engine = Findotype()
         >>> disease = engine.get_disease("DOID:0001816")
         >>> print(disease.name)
         'angiosarcoma'

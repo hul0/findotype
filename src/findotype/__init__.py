@@ -17,8 +17,15 @@ from findotype.models.relationship import (
     HierarchyNode,
 )
 from findotype.models.provenance import (
-    Provenance,
     DatasetMetadata,
+    DatasetProvenance,
+    KnowledgeBaseMetadata,
+    Provenance,
+)
+from findotype.models.phenotype import (
+    ExtractedSymptom,
+    MatchedPhenotype,
+    PhenotypeMatchResult,
 )
 from findotype.models.search import (
     SearchResult,
@@ -29,13 +36,15 @@ from findotype.models.stats import (
     DatabaseStats,
 )
 from findotype.services.ontology_service import Findotype
+from findotype.server.app import run_server
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __author__ = "Rupam Ghosh"
 __license__ = "AGPL-3.0-or-later"
 
 __all__ = [
     "Findotype",
+    "run_server",
     "Disease",
     "Synonym",
     "Definition",
@@ -45,6 +54,11 @@ __all__ = [
     "HierarchyNode",
     "Provenance",
     "DatasetMetadata",
+    "DatasetProvenance",
+    "KnowledgeBaseMetadata",
+    "ExtractedSymptom",
+    "MatchedPhenotype",
+    "PhenotypeMatchResult",
     "SearchResult",
     "SearchMatchType",
     "ImportStats",

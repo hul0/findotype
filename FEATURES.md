@@ -81,7 +81,7 @@ A comprehensive roadmap of potential capabilities to expand the Findotype Python
 - [ ] Add `findotype graph <ID> --depth 3 --format svg/png/ascii` CLI subcommand to render graphical relationship diagrams.
 - [ ] Add `findotype export --format parquet/csv/jsonl/fhir` CLI subcommand to dump custom slices of the knowledge base.
 - [ ] Add `findotype doctor` CLI health-check subcommand verifying database integrity, FTS indexes, pragma performance, and orphaned records.
-- [ ] Add `findotype serve --port 8000` CLI subcommand launching an instant lightweight offline REST/JSON API server.
+- [x] Add `findotype serve --port 8000` CLI subcommand launching an instant lightweight offline REST/JSON API server with Swagger UI and OpenAPI 3.0.
 - [ ] Add shell completion generator (`findotype completion bash/zsh/fish`) with auto-complete for commands and DOID/HP CURIEs.
 
 ---

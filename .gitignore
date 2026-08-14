@@ -225,4 +225,5 @@ __marimo__/
 *.db-shm
 *.db.tar.gz
 data/
-assets/*
+assets/DO
+assets/HPO

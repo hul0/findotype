@@ -69,9 +69,25 @@ def benchmark(db_path: str = str(DEFAULT_DB_PATH)):
                 t1 = time.perf_counter()
                 desc_times.append((t1 - t0) * 1000)
 
+        # Benchmark Clinical Phenotype Matching
+        match_times = []
+        sample_symptom_queries = [
+            "I have fever, cough, nausea",
+            "joint pain, rash, fever, fatigue",
+            "chest pain, dyspnea, hemoptysis",
+            "jaundice, abdominal pain, hepatomegaly",
+        ]
+        for sq in sample_symptom_queries:
+            for _ in range(25):
+                t0 = time.perf_counter()
+                matches = engine.match_phenotypes(sq, limit=10)
+                t1 = time.perf_counter()
+                match_times.append((t1 - t0) * 1000)
+
         print("\n--- BENCHMARK RESULTS ---")
         print(f"Direct ID Lookup:        Mean = {statistics.mean(id_times):.3f} ms | P95 = {sorted(id_times)[int(len(id_times)*0.95)]:.3f} ms | P99 = {sorted(id_times)[int(len(id_times)*0.99)]:.3f} ms")
         print(f"Multi-Tiered FTS Search: Mean = {statistics.mean(search_times):.3f} ms | P95 = {sorted(search_times)[int(len(search_times)*0.95)]:.3f} ms | P99 = {sorted(search_times)[int(len(search_times)*0.99)]:.3f} ms")
+        print(f"Clinical Phenotype Match:Mean = {statistics.mean(match_times):.3f} ms | P95 = {sorted(match_times)[int(len(match_times)*0.95)]:.3f} ms | P99 = {sorted(match_times)[int(len(match_times)*0.99)]:.3f} ms")
         print(f"Recursive Ancestors CTE: Mean = {statistics.mean(anc_times):.3f} ms | P95 = {sorted(anc_times)[int(len(anc_times)*0.95)]:.3f} ms | P99 = {sorted(anc_times)[int(len(anc_times)*0.99)]:.3f} ms")
         print(f"Recursive Descendants:   Mean = {statistics.mean(desc_times):.3f} ms | P95 = {sorted(desc_times)[int(len(desc_times)*0.95)]:.3f} ms | P99 = {sorted(desc_times)[int(len(desc_times)*0.99)]:.3f} ms")
         print("-------------------------\n")

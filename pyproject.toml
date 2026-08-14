@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "findotype"
-version = "0.1.0"
-description = "High-performance offline Disease Ontology backend and SQLite search engine"
+version = "1.0.0"
+description = "Offline Disease Ontology and Human Phenotype Ontology engine and search backend"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "AGPL-3.0-or-later" }
@@ -15,6 +15,8 @@ authors = [
 keywords = [
     "disease-ontology",
     "doid",
+    "human-phenotype-ontology",
+    "hpo",
     "ontology",
     "sqlite",
     "fts5",
@@ -22,7 +24,7 @@ keywords = [
     "biomedical"
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Healthcare Industry",
     "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
@@ -36,6 +38,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Medical Science Apps."
 ]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/hul0/findotype"
+Repository = "https://github.com/hul0/findotype"
+Documentation = "https://github.com/hul0/findotype#readme"
+"Bug Tracker" = "https://github.com/hul0/findotype/issues"
 
 [project.optional-dependencies]
 dev = [

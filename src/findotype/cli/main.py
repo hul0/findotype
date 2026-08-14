@@ -39,7 +39,7 @@ def cmd_download_db(args) -> int:
     try:
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "Findotype/0.1.0 (offline disease ontology backend)"},
+            headers={"User-Agent": "Findotype/1.0.0 (offline disease ontology backend)"},
         )
         temp_tar = dest_path.parent / f"temp_{tag}.tar.gz"
         with urllib.request.urlopen(req) as response, open(temp_tar, "wb") as out_file:
@@ -104,7 +104,7 @@ def cmd_download(args) -> int:
         # Standard library download with user-agent
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "Findotype/0.1.0 (offline disease ontology backend)"},
+            headers={"User-Agent": "Findotype/1.0.0 (offline disease ontology backend)"},
         )
         with urllib.request.urlopen(req) as response, open(dest_path, "wb") as out_file:
             total_size = int(response.info().get("Content-Length", 0))
