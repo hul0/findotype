@@ -62,13 +62,13 @@ Findotype is a modular, high-performance offline disease ontology backend and se
 
 | Component | Path | Responsibility |
 | :--- | :--- | :--- |
-| **`models`** | [`src/findotype/models/`](file:///home/johan/CRINE/findotype/src/findotype/models/) | Immutable typed dataclasses (`Disease`, `Synonym`, `Definition`, `CrossReference`, `Relationship`, `Provenance`, `SearchResult`, `DatabaseStats`). |
-| **`db`** | [`src/findotype/db/`](file:///home/johan/CRINE/findotype/src/findotype/db/) | DDL schema, performance PRAGMAs (WAL, memory cache, memory temp store), FTS5 virtual table, and connection management. |
-| **`ontology`** | [`src/findotype/ontology/`](file:///home/johan/CRINE/findotype/src/findotype/ontology/) | Bidirectional CURIE converters (`uri_to_curie`, `curie_to_uri`), synonym scope normalizers, cross-reference parsers. |
-| **`importers`** | [`src/findotype/importers/`](file:///home/johan/CRINE/findotype/src/findotype/importers/) | Strict input validation, cryptographic hashing, and transactional batch loading of OBO-JSON graphs. |
-| **`repositories`**| [`src/findotype/repositories/`](file:///home/johan/CRINE/findotype/src/findotype/repositories/) | Data access layer: indexed Lookups, recursive CTE graph traversals (`get_ancestors`, `get_descendants`), and multi-tiered FTS5 searches. |
-| **`services`** | [`src/findotype/services/`](file:///home/johan/CRINE/findotype/src/findotype/services/) | High-level `Findotype` public facade with context manager lifecycle. |
-| **`cli`** | [`src/findotype/cli/`](file:///home/johan/CRINE/findotype/src/findotype/cli/) | CLI commands (`download`, `validate`, `import`, `stats`, `search`, `inspect`) with formatted tables and `--json` support. |
+| **`models`** | [`src/findotype/models/`](/src/findotype/models/) | Immutable typed dataclasses (`Disease`, `Synonym`, `Definition`, `CrossReference`, `Relationship`, `Provenance`, `SearchResult`, `DatabaseStats`). |
+| **`db`** | [`src/findotype/db/`](/src/findotype/db/) | DDL schema, performance PRAGMAs (WAL, memory cache, memory temp store), FTS5 virtual table, and connection management. |
+| **`ontology`** | [`src/findotype/ontology/`](/src/findotype/ontology/) | Bidirectional CURIE converters (`uri_to_curie`, `curie_to_uri`), synonym scope normalizers, cross-reference parsers. |
+| **`importers`** | [`src/findotype/importers/`](/src/findotype/importers/) | Strict input validation, cryptographic hashing, and transactional batch loading of OBO-JSON graphs. |
+| **`repositories`**| [`src/findotype/repositories/`](/src/findotype/repositories/) | Data access layer: indexed Lookups, recursive CTE graph traversals (`get_ancestors`, `get_descendants`), and multi-tiered FTS5 searches. |
+| **`services`** | [`src/findotype/services/`](/src/findotype/services/) | High-level `Findotype` public facade with context manager lifecycle. |
+| **`cli`** | [`src/findotype/cli/`](/src/findotype/cli/) | CLI commands (`download`, `validate`, `import`, `stats`, `search`, `inspect`) with formatted tables and `--json` support. |
 
 ---
 
@@ -115,7 +115,7 @@ When querying `search_diseases(query)`:
 
 Findotype's relational schema is ontology-agnostic. To add support for new ontologies:
 
-1. Subclass [`BaseImporter`](file:///home/johan/CRINE/findotype/src/findotype/importers/base.py) in `src/findotype/importers/<dataset>.py` (e.g. `HpoImporter`, `MondoImporter`, `OrphanetImporter`).
-2. Register the prefix in [`src/findotype/ontology/curie.py`](file:///home/johan/CRINE/findotype/src/findotype/ontology/curie.py).
+1. Subclass [`BaseImporter`](/src/findotype/importers/base.py) in `src/findotype/importers/<dataset>.py` (e.g. `HpoImporter`, `MondoImporter`, `OrphanetImporter`).
+2. Register the prefix in [`src/findotype/ontology/curie.py`](/src/findotype/ontology/curie.py).
 3. Import into the common `entities`, `relationships`, `synonyms`, and `cross_references` tables with the appropriate `namespace` (e.g. `HP`, `MONDO`, `ORPHA`).
 4. Cross-ontology relationships will resolve automatically through unified foreign keys.
