@@ -5,7 +5,7 @@
 [![Data License: CC0-1.0](https://img.shields.io/badge/Data%20License-CC0%201.0-lightgrey.svg)](THIRD_PARTY.md)
 [![CI](https://github.com/hul0/findotype/actions/workflows/ci.yml/badge.svg)](https://github.com/hul0/findotype/actions/workflows/ci.yml)
 
-![Findotype Banner](assets/images/banner.jpeg)
+![Findotype Banner](assets/images/banner.jpg)
 
 Findotype is an offline medical ontology search engine, relational database, and Python library for the Disease Ontology (DOID) and Human Phenotype Ontology (HPO).
 
