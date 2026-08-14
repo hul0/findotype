@@ -16,6 +16,7 @@ def get_openapi_spec() -> Dict[str, Any]:
             "version": "1.0.0",
             "contact": {
                 "name": "Rupam Ghosh",
+                "email": "hulo@crine.in",
             },
             "license": {
                 "name": "GNU AGPL-3.0-or-later",

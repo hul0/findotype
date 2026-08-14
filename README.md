@@ -37,7 +37,9 @@ It parses OBO-JSON graphs into a normalized SQLite database with FTS5 text index
 - [Database Schema](#database-schema)
 - [Building from Source Datasets](#building-from-source-datasets)
 - [Benchmarks](#benchmarks)
-- [License](#license)
+- [Contributing & Community](#contributing--community)
+- [Support & Sponsorship](#support--sponsorship)
+- [License & Authors](#license--authors)
 
 ---
 
@@ -273,8 +275,30 @@ python3 -m unittest discover -s tests -v
 
 ---
 
-## License
+## Contributing & Community
+
+Contributions are welcome from bioinformaticians, medical researchers, and software engineers.
+
+- **Guidelines**: Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting pull requests.
+- **Code of Conduct**: All participants agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+- **Discussions**: Ask questions or share ideas on [GitHub Discussions](https://github.com/hul0/findotype/discussions).
+
+---
+
+## Support & Sponsorship
+
+Findotype is an independent open-source medical ontology engine and research project.
+
+If you or your organization are interested in **supporting, sponsoring, or partnering** on this project:
+
+- **Email**: [hulo@crine.in](mailto:hulo@crine.in)
+- **Support Guide**: See [SUPPORT.md](SUPPORT.md) for details on sponsorship, infrastructure grants, and feature prioritization.
+
+---
+
+## License & Authors
 
 - **Source Code**: [GNU AGPL-3.0-or-later](LICENSE)
 - **Ontology Data**: [Creative Commons CC0 1.0 Universal](THIRD_PARTY.md)
-- **Author**: Rupam Ghosh
+- **Author & Maintainer**: Rupam Ghosh ([hulo@crine.in](mailto:hulo@crine.in))
+- **Repository**: [https://github.com/hul0/findotype](https://github.com/hul0/findotype)

@@ -40,6 +40,7 @@ from findotype.server.app import run_server
 
 __version__ = "1.0.0"
 __author__ = "Rupam Ghosh"
+__email__ = "hulo@crine.in"
 __license__ = "AGPL-3.0-or-later"
 
 __all__ = [
