@@ -1,0 +1,220 @@
+{
+  "graphs": [
+    {
+      "id": "http://purl.obolibrary.org/obo/doid.owl",
+      "meta": {
+        "basicPropertyValues": [
+          {
+            "pred": "http://purl.obolibrary.org/obo/IAO_0000700",
+            "val": "http://purl.obolibrary.org/obo/DOID_4"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/description",
+            "val": "The Disease Ontology sample test graph."
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/title",
+            "val": "Human Disease Ontology Test"
+          },
+          {
+            "pred": "http://purl.org/dc/terms/license",
+            "val": "https://creativecommons.org/publicdomain/zero/1.0/"
+          },
+          {
+            "pred": "http://www.geneontology.org/formats/oboInOwl#date",
+            "val": "31:07:2026 12:00"
+          },
+          {
+            "pred": "http://www.w3.org/2002/07/owl#versionInfo",
+            "val": "2026-07-31"
+          }
+        ],
+        "version": "http://purl.obolibrary.org/obo/doid/releases/2026-07-31/doid.owl"
+      },
+      "nodes": [
+        {
+          "id": "http://purl.obolibrary.org/obo/DOID_4",
+          "lbl": "disease",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A disease is a disposition to undergo pathological processes.",
+              "xrefs": ["url:http://en.wikipedia.org/wiki/Disease"]
+            }
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/DOID_162",
+          "lbl": "cancer",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A disease of cellular proliferation that is malignant and primary.",
+              "xrefs": ["url:https://en.wikipedia.org/wiki/Cancer"]
+            },
+            "subsets": ["http://purl.obolibrary.org/obo/doid#DO_cancer_slim"],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "malignant neoplasm"
+              },
+              {
+                "pred": "hasBroadSynonym",
+                "val": "tumor"
+              }
+            ],
+            "xrefs": [
+              {"val": "MESH:D009369"},
+              {"val": "ICD10CM:C80.1"},
+              {"val": "UMLS_CUI:C0006826"}
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/DOID_175",
+          "lbl": "vascular cancer",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A cancer that is located in the vascular system.",
+              "xrefs": ["url:http://en.wikipedia.org/wiki/Vascular_cancer"]
+            },
+            "subsets": ["http://purl.obolibrary.org/obo/doid#DO_cancer_slim"],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "cancer of vascular system"
+              }
+            ],
+            "xrefs": [
+              {"val": "MESH:D014653"}
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/DOID_0001816",
+          "lbl": "angiosarcoma",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A vascular cancer that derives from the cells that line blood vessels.",
+              "xrefs": [
+                "url:https://en.wikipedia.org/wiki/Angiosarcoma",
+                "PUBMED:23327728"
+              ]
+            },
+            "subsets": ["http://purl.obolibrary.org/obo/doid#DO_cancer_slim"],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "hemangiosarcoma"
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "malignant hemangioendothelioma"
+              }
+            ],
+            "xrefs": [
+              {"val": "MESH:D006394"},
+              {"val": "ICDO:9120/3"},
+              {"val": "NCI:C3088"},
+              {"val": "UMLS_CUI:C0018923"}
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://www.geneontology.org/formats/oboInOwl#hasAlternativeId",
+                "val": "DOID:267"
+              },
+              {
+                "pred": "http://www.geneontology.org/formats/oboInOwl#hasAlternativeId",
+                "val": "DOID:4508"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/DOID_399",
+          "lbl": "tuberculosis",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A bacterial infectious disease that involves infection by Mycobacterium tuberculosis.",
+              "xrefs": ["url:http://en.wikipedia.org/wiki/Tuberculosis"]
+            },
+            "subsets": ["http://purl.obolibrary.org/obo/doid#DO_infectious_disease_slim"],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "TB"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "consumption"
+              }
+            ],
+            "xrefs": [
+              {"val": "MESH:D014376"},
+              {"val": "ICD10CM:A15"}
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/DOID_0050001",
+          "lbl": "obsolete Actinomadura madurae infectious disease",
+          "type": "CLASS",
+          "meta": {
+            "deprecated": true
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CHEBI_15365",
+          "lbl": "acetylcholine",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A choline ester.",
+              "xrefs": []
+            }
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/IDO_0000664",
+          "lbl": "has material basis in",
+          "type": "PROPERTY"
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/RO_0002452",
+          "lbl": "has substance added",
+          "type": "PROPERTY"
+        }
+      ],
+      "edges": [
+        {
+          "sub": "http://purl.obolibrary.org/obo/DOID_162",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/DOID_4"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/DOID_175",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/DOID_162"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/DOID_0001816",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/DOID_175"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/DOID_399",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/DOID_4"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/DOID_0001816",
+          "pred": "http://purl.obolibrary.org/obo/RO_0002452",
+          "obj": "http://purl.obolibrary.org/obo/CHEBI_15365"
+        }
+      ]
+    }
+  ]
+}
