@@ -1,0 +1,134 @@
+name: Build & Release Knowledge Base Database
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release-db:
+    name: Build & Release findotype.db
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Download Disease Ontology & Human Phenotype Ontology Datasets
+        run: |
+          mkdir -p assets/DO data
+          echo "Downloading latest Disease Ontology (doid.json)..."
+          curl -sSL "https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/main/src/ontology/doid.json" -o assets/DO/doid.json
+          
+          echo "Downloading latest Human Phenotype Ontology (hp-base.json)..."
+          curl -sSL "https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/hp-base.json" -o assets/hp-base.json
+
+      - name: Validate Datasets Structure
+        run: |
+          findotype validate assets/DO/doid.json
+          findotype validate assets/hp-base.json
+
+      - name: Ingest Ontologies into SQLite Database
+        run: |
+          echo "Ingesting Disease Ontology..."
+          findotype import assets/DO/doid.json --db data/findotype.db
+          
+          echo "Ingesting Human Phenotype Ontology..."
+          findotype import-hpo assets/hp-base.json --db data/findotype.db
+
+      - name: Run Test Suite Verification
+        run: |
+          pytest -v || python3 -m unittest discover -s tests -v
+
+      - name: Verify Knowledge Base Statistics
+        run: |
+          findotype stats --db data/findotype.db
+
+      - name: Package & Generate Checksums
+        id: package
+        run: |
+          VERSION="${{ github.ref_name }}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
+            VERSION="${{ github.event.inputs.version || 'v1.0.0' }}"
+          fi
+          echo "RELEASE_TAG=${VERSION}" >> $GITHUB_ENV
+
+          mkdir -p dist-db
+          cp data/findotype.db dist-db/findotype-${VERSION}.db
+          cp data/findotype.db dist-db/findotype.db
+
+          cd dist-db
+          tar -czvf findotype-${VERSION}.db.tar.gz findotype-${VERSION}.db
+          zip -9 findotype-${VERSION}.db.zip findotype-${VERSION}.db
+          
+          sha256sum findotype-${VERSION}.db findotype-${VERSION}.db.tar.gz findotype-${VERSION}.db.zip > checksums.sha256
+          cat checksums.sha256
+          cd ..
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Findotype Biomedical Knowledge Base ${{ env.RELEASE_TAG }}
+          body: |
+            ## Findotype Biomedical Knowledge Base (`findotype.db`) ${{ env.RELEASE_TAG }}
+
+            Offline SQLite Knowledge Base containing the **Disease Ontology (DOID)** and **Human Phenotype Ontology (HPO)**.
+
+            ### Constituent Datasets & Provenance
+            * **Disease Ontology**: Full term definitions, synonyms, xrefs, and disease classification.
+            * **Human Phenotype Ontology (HPO)**: Phenotypic abnormalities, signs, and symptom relationships.
+            * **Indexing**: SQLite FTS5 full-text search and recursive CTE graph traversal indexes.
+
+            ### Quickstart
+
+            #### 1. Download & Extract
+            ```bash
+            # Download compressed SQLite database
+            curl -sSL -O https://github.com/${{ github.repository }}/releases/download/${{ env.RELEASE_TAG }}/findotype-${{ env.RELEASE_TAG }}.db.tar.gz
+            tar -xzvf findotype-${{ env.RELEASE_TAG }}.db.tar.gz
+            mv findotype-${{ env.RELEASE_TAG }}.db data/findotype.db
+            ```
+
+            #### 2. Launch Web UI & Swagger Docs
+            ```bash
+            python3 -m findotype serve --port 8000
+            ```
+
+            #### 3. Match Clinical Symptoms
+            ```bash
+            python3 -m findotype match "I have fever, cough, nausea"
+            ```
+
+            ### Verification Checksums
+            Verify integrity with SHA-256:
+            ```bash
+            sha256sum -c checksums.sha256
+            ```
+          files: |
+            dist-db/findotype-${{ env.RELEASE_TAG }}.db
+            dist-db/findotype-${{ env.RELEASE_TAG }}.db.tar.gz
+            dist-db/findotype-${{ env.RELEASE_TAG }}.db.zip
+            dist-db/checksums.sha256
+          draft: false
+          prerelease: false

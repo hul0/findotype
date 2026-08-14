@@ -76,6 +76,13 @@ class TestCLI(unittest.TestCase):
         self.assertGreater(len(data["synonyms"]), 0)
         self.assertGreater(len(data["parents"]), 0)
 
+    def test_cli_download_db_help(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            # Test with nonexistent URL returns error code 1 gracefully
+            ret = main(["download-db", "--url", "http://127.0.0.1:99999/nonexistent.tar.gz", "--json"])
+        self.assertEqual(ret, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

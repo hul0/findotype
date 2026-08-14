@@ -427,5 +427,3 @@ def run_server(
         print("\nStopping Findotype server...")
     finally:
         httpd.server_close()
-        if FindotypeRequestHandler._engine:
-            FindotypeRequestHandler._engine.close()

@@ -221,4 +221,8 @@ __marimo__/
 
 
 *.db
+*.db-wal
+*.db-shm
+*.db.tar.gz
+data/
 assets/*

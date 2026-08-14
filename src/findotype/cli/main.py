@@ -1,9 +1,9 @@
-"""CLI interface for Findotype Disease Ontology toolkit."""
-
-import urllib
 import argparse
 import json
+import shutil
 import sys
+import tarfile
+import urllib.request
 from pathlib import Path
 from typing import List, Optional
 
@@ -18,6 +18,76 @@ def _format_size(num_bytes: int) -> str:
             return f"{num_bytes:3.1f} {unit}"
         num_bytes /= 1024.0
     return f"{num_bytes:.1f} TB"
+
+
+def cmd_download_db(args) -> int:
+    """Download pre-built findotype.db database from GitHub Releases."""
+    tag = args.tag or "v1.0.0"
+    repo = args.repo or "hul0/findotype"
+    dest_path = Path(args.output)
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    url = args.url or f"https://github.com/{repo}/releases/download/{tag}/findotype-{tag}.db.tar.gz"
+
+    if not args.json:
+        print(f"\n{'='*70}")
+        print(f"Downloading Precompiled Findotype Knowledge Base ({tag})")
+        print(f"{'='*70}")
+        print(f"Source URL:  {url}")
+        print(f"Destination: {dest_path.resolve()}")
+
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "Findotype/0.1.0 (offline disease ontology backend)"},
+        )
+        temp_tar = dest_path.parent / f"temp_{tag}.tar.gz"
+        with urllib.request.urlopen(req) as response, open(temp_tar, "wb") as out_file:
+            total_size = int(response.info().get("Content-Length", 0))
+            downloaded = 0
+            block_size = 65536
+
+            while True:
+                buffer = response.read(block_size)
+                if not buffer:
+                    break
+                downloaded += len(buffer)
+                out_file.write(buffer)
+                if not args.json and total_size > 0:
+                    percent = downloaded * 100 / total_size
+                    sys.stdout.write(f"\rProgress: {percent:5.1f}% ({_format_size(downloaded)})")
+                    sys.stdout.flush()
+
+        if not args.json:
+            print("\nExtracting database archive...")
+
+        with tarfile.open(temp_tar, "r:gz") as tar:
+            for member in tar.getmembers():
+                if member.name.endswith(".db"):
+                    f = tar.extractfile(member)
+                    if f:
+                        with open(dest_path, "wb") as dest_f:
+                            shutil.copyfileobj(f, dest_f)
+                    break
+
+        if temp_tar.exists():
+            temp_tar.unlink()
+
+        if not args.json:
+            print(f"Database ready: {dest_path.resolve()} ({_format_size(dest_path.stat().st_size)})\n")
+        else:
+            print(json.dumps({
+                "status": "success",
+                "output_path": str(dest_path.resolve()),
+                "size_bytes": dest_path.stat().st_size,
+            }))
+        return 0
+    except Exception as e:
+        if args.json:
+            print(json.dumps({"status": "error", "error": str(e)}))
+        else:
+            print(f"\nError downloading database: {e}", file=sys.stderr)
+        return 1
 
 
 def cmd_download(args) -> int:
@@ -613,6 +683,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_serve.add_argument("-H", "--host", default="127.0.0.1", help="Host interface to bind (default: 127.0.0.1)")
     p_serve.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite database")
 
+    # download-db
+    p_downdb = subparsers.add_parser("download-db", parents=[common_parser], help="Download pre-built findotype.db from GitHub Releases")
+    p_downdb.add_argument("-t", "--tag", default="v1.0.0", help="Release version tag (default: v1.0.0)")
+    p_downdb.add_argument("-o", "--output", default=str(DEFAULT_DB_PATH), help="Output destination SQLite database path")
+    p_downdb.add_argument("--repo", default="hul0/findotype", help="GitHub repository name (owner/repo)")
+    p_downdb.add_argument("--url", default=None, help="Custom direct download archive URL")
+
     # download
     p_down = subparsers.add_parser("download", parents=[common_parser], help="Download the latest Disease Ontology dataset")
     p_down.add_argument("-o", "--output", default="assets/DO/doid.json", help="Output destination path")
@@ -669,6 +746,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     commands = {
         "serve": cmd_serve,
+        "download-db": cmd_download_db,
         "download": cmd_download,
         "validate": cmd_validate,
         "import": cmd_import,
