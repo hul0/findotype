@@ -3,9 +3,13 @@
 import json
 import sqlite3
 from pathlib import Path
-from typing import Dict, Optional
+from typing import List, Optional
 
-from findotype.models.provenance import DatasetMetadata, Provenance
+from findotype.models.provenance import (
+    DatasetMetadata,
+    DatasetProvenance,
+    KnowledgeBaseMetadata,
+)
 from findotype.models.stats import DatabaseStats
 
 
@@ -15,31 +19,92 @@ class MetadataRepository:
     def __init__(self, connection: sqlite3.Connection):
         self.conn = connection
 
-    def get_provenance(self) -> Optional[Provenance]:
-        """Retrieve the latest import provenance record."""
+    def get_provenance_list(self) -> List[DatasetProvenance]:
+        """Retrieve provenance records for all ingested datasets in the database."""
         cursor = self.conn.cursor()
         cursor.execute(
             """
-            SELECT dataset_name, dataset_version, source_uri, source_sha256,
-                   schema_version, imported_at, stats_json
+            SELECT dataset_name, dataset_version, release_date, license, root_term,
+                   source_uri, source_sha256, schema_version, imported_at, stats_json
             FROM provenance
-            ORDER BY id DESC
-            LIMIT 1;
+            ORDER BY id ASC;
             """
         )
+        records = []
+        for row in cursor.fetchall():
+            stats = json.loads(row["stats_json"]) if row["stats_json"] else {}
+            records.append(
+                DatasetProvenance(
+                    dataset_name=row["dataset_name"],
+                    dataset_version=row["dataset_version"],
+                    release_date=row["release_date"],
+                    license=row["license"],
+                    root_term=row["root_term"],
+                    source_uri=row["source_uri"],
+                    source_sha256=row["source_sha256"],
+                    schema_version=row["schema_version"],
+                    imported_at=row["imported_at"],
+                    stats=stats,
+                )
+            )
+        return records
+
+    def get_provenance(self, dataset_name: Optional[str] = None) -> Optional[DatasetProvenance]:
+        """
+        Retrieve provenance record for a specific dataset or the latest imported dataset.
+        """
+        cursor = self.conn.cursor()
+        if dataset_name:
+            cursor.execute(
+                """
+                SELECT dataset_name, dataset_version, release_date, license, root_term,
+                       source_uri, source_sha256, schema_version, imported_at, stats_json
+                FROM provenance
+                WHERE LOWER(dataset_name) = LOWER(?)
+                ORDER BY id DESC
+                LIMIT 1;
+                """,
+                (dataset_name.strip(),),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT dataset_name, dataset_version, release_date, license, root_term,
+                       source_uri, source_sha256, schema_version, imported_at, stats_json
+                FROM provenance
+                ORDER BY id DESC
+                LIMIT 1;
+                """
+            )
         row = cursor.fetchone()
         if not row:
             return None
 
         stats = json.loads(row["stats_json"]) if row["stats_json"] else {}
-        return Provenance(
+        return DatasetProvenance(
             dataset_name=row["dataset_name"],
             dataset_version=row["dataset_version"],
+            release_date=row["release_date"],
+            license=row["license"],
+            root_term=row["root_term"],
             source_uri=row["source_uri"],
             source_sha256=row["source_sha256"],
             schema_version=row["schema_version"],
             imported_at=row["imported_at"],
             stats=stats,
+        )
+
+    def get_knowledge_base_metadata(self) -> KnowledgeBaseMetadata:
+        """Retrieve top-level Findotype Knowledge Base metadata and constituent datasets."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT key, value FROM metadata;")
+        meta_dict = {row["key"]: row["value"] for row in cursor.fetchall()}
+
+        datasets = self.get_provenance_list()
+        return KnowledgeBaseMetadata(
+            name=meta_dict.get("knowledge_base_name", "Findotype Biomedical Knowledge Base"),
+            schema_version=meta_dict.get("schema_version", "1.0.0"),
+            datasets=datasets,
         )
 
     def get_metadata(self) -> DatasetMetadata:
@@ -54,7 +119,7 @@ class MetadataRepository:
                 extra[k[5:]] = v
 
         return DatasetMetadata(
-            title=meta_dict.get("title"),
+            title=meta_dict.get("knowledge_base_name", "Findotype Biomedical Knowledge Base"),
             description=meta_dict.get("description"),
             version=meta_dict.get("version"),
             date=meta_dict.get("date"),
@@ -120,7 +185,6 @@ class MetadataRepository:
         if db_path and Path(db_path).exists():
             db_size_bytes = Path(db_path).stat().st_size
         else:
-            # Fallback to page_count * page_size
             try:
                 cursor.execute("PRAGMA page_count;")
                 pages = cursor.fetchone()[0]

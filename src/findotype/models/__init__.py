@@ -12,8 +12,10 @@ from findotype.models.relationship import (
     HierarchyNode,
 )
 from findotype.models.provenance import (
-    Provenance,
     DatasetMetadata,
+    DatasetProvenance,
+    KnowledgeBaseMetadata,
+    Provenance,
 )
 from findotype.models.search import (
     SearchResult,
@@ -22,6 +24,11 @@ from findotype.models.search import (
 from findotype.models.stats import (
     ImportStats,
     DatabaseStats,
+)
+from findotype.models.phenotype import (
+    ExtractedSymptom,
+    MatchedPhenotype,
+    PhenotypeMatchResult,
 )
 
 __all__ = [
@@ -38,4 +45,6 @@ __all__ = [
     "SearchMatchType",
     "ImportStats",
     "DatabaseStats",
+    "ExtractedSymptom",
+    "PhenotypeMatchResult",
 ]

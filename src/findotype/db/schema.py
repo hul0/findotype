@@ -1,11 +1,14 @@
 """Database schema definition, DDL statements, FTS5 virtual tables, and indexes."""
 
 SCHEMA_DDL = """
--- Provenance of imported dataset
+-- Provenance of imported datasets
 CREATE TABLE IF NOT EXISTS provenance (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     dataset_name TEXT NOT NULL,
     dataset_version TEXT,
+    release_date TEXT,
+    license TEXT,
+    root_term TEXT,
     source_uri TEXT,
     source_sha256 TEXT NOT NULL,
     schema_version TEXT NOT NULL,

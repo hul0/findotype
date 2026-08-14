@@ -1,15 +1,13 @@
 """CLI interface for Findotype Disease Ontology toolkit."""
 
+import urllib
 import argparse
 import json
 import sys
-import urllib.request
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from findotype.config import DEFAULT_DB_PATH, DEFAULT_DOID_URL
-from findotype.models.disease import Disease
-from findotype.models.search import SearchResult
 from findotype.services.ontology_service import Findotype
 
 
@@ -164,7 +162,7 @@ def cmd_import(args) -> int:
 
 
 def cmd_stats(args) -> int:
-    """Display database statistics and provenance."""
+    """Display database statistics and multi-dataset provenance."""
     db_path = Path(args.db)
     if not db_path.exists():
         if args.json:
@@ -175,27 +173,30 @@ def cmd_stats(args) -> int:
 
     with Findotype(db_path=db_path) as engine:
         stats = engine.get_stats()
-        prov = engine.get_provenance()
-        meta = engine.get_metadata()
+        kb_meta = engine.get_knowledge_base_metadata()
+        datasets = engine.get_datasets()
 
     if args.json:
         data = {
             "database": str(db_path.resolve()),
             "size_bytes": stats.db_size_bytes,
-            "provenance": {
-                "dataset_name": prov.dataset_name if prov else None,
-                "version": prov.dataset_version if prov else None,
-                "source_uri": prov.source_uri if prov else None,
-                "source_sha256": prov.source_sha256 if prov else None,
-                "schema_version": prov.schema_version if prov else None,
-                "imported_at": prov.imported_at if prov else None,
+            "knowledge_base": {
+                "name": kb_meta.name,
+                "schema_version": kb_meta.schema_version,
             },
-            "metadata": {
-                "title": meta.title,
-                "description": meta.description,
-                "license": meta.license,
-                "root_term": meta.root_term,
-            },
+            "datasets": [
+                {
+                    "name": d.dataset_name,
+                    "version": d.dataset_version,
+                    "release_date": d.release_date,
+                    "license": d.license,
+                    "root_term": d.root_term,
+                    "source_uri": d.source_uri,
+                    "source_sha256": d.source_sha256,
+                    "imported_at": d.imported_at,
+                }
+                for d in datasets
+            ],
             "counts": {
                 "entities": stats.total_entities,
                 "diseases": stats.total_diseases,
@@ -216,18 +217,29 @@ def cmd_stats(args) -> int:
     print(f"\n{'='*65}")
     print(f"Findotype Database Summary: {db_path.name} ({_format_size(stats.db_size_bytes)})")
     print(f"{'='*65}")
+    print(f"Knowledge Base:   {kb_meta.name}")
+    print(f"Schema Version:   {kb_meta.schema_version}")
+    print(f"Datasets Loaded:  {len(datasets)}")
 
-    if prov:
-        print(f"Dataset Name:     {prov.dataset_name}")
-        print(f"Dataset Version:  {prov.dataset_version or 'N/A'}")
-        print(f"Release Date:     {meta.date or 'N/A'}")
-        print(f"License:          {meta.license or 'CC0 1.0 Universal'}")
-        print(f"Source SHA-256:   {prov.source_sha256[:16]}...{prov.source_sha256[-8:]}")
-        print(f"Imported At:      {prov.imported_at}")
-        print(f"Schema Version:   {prov.schema_version}")
-        print(f"Root Term:        {meta.root_term or 'DOID:4'}")
-        print("-" * 65)
+    if datasets:
+        print(f"\nCONSTITUENT ONTOLOGIES & DATASETS:")
+        for d in datasets:
+            print(f"  * {d.dataset_name}")
+            print(f"    - Version:      {d.dataset_version or 'N/A'}")
+            if d.release_date:
+                print(f"    - Release Date: {d.release_date}")
+            if d.license:
+                print(f"    - License:      {d.license}")
+            if d.root_term:
+                print(f"    - Root Term:    {d.root_term}")
+            if d.source_sha256:
+                short_hash = f"{d.source_sha256[:16]}...{d.source_sha256[-8:]}" if len(d.source_sha256) > 24 else d.source_sha256
+                print(f"    - Source SHA:   {short_hash}")
+            if d.imported_at:
+                print(f"    - Imported At:  {d.imported_at}")
+            print()
 
+    print("-" * 65)
     print("TABLE METRICS:")
     print(f"  - Total Entities:         {stats.total_entities:,}")
     print(f"  - Primary DOID Diseases:  {stats.total_diseases:,}")
@@ -244,11 +256,11 @@ def cmd_stats(args) -> int:
 
     print("\nTOP RELATIONSHIP PREDICATES:")
     for pred, count in sorted(stats.top_predicates.items(), key=lambda x: x[1], reverse=True)[:6]:
-        print(f"  {pred:<30} : {count:>7,}")
+        print(f"  {pred:<32} : {count:>7,}")
 
     print("\nTOP CROSS-REFERENCE DATABASES:")
     for db_name, count in sorted(stats.top_xref_databases.items(), key=lambda x: x[1], reverse=True)[:6]:
-        print(f"  {db_name:<20} : {count:>7,}")
+        print(f"  {db_name:<22} : {count:>7,}")
 
     print(f"{'='*65}\n")
     return 0
@@ -418,6 +430,158 @@ def cmd_inspect(args) -> int:
     return 0
 
 
+def cmd_import_hpo(args) -> int:
+    """Import an hp-base.json dataset into the SQLite database."""
+    file_path = Path(args.file)
+    db_path = Path(args.db)
+
+    if not args.json:
+        print(f"\n{'='*60}")
+        print(f"Importing Human Phenotype Ontology into SQLite")
+        print(f"{'='*60}")
+        print(f"Source file:       {file_path.resolve()}")
+        print(f"Target SQLite DB:  {db_path.resolve()}")
+        print("Parsing and ingesting HPO terms inside atomic transaction...")
+
+    try:
+        engine = Findotype(db_path=db_path)
+        stats = engine.import_hpo(
+            file_path=file_path,
+            include_obsolete=args.include_obsolete,
+        )
+        engine.close()
+
+        if args.json:
+            print(json.dumps({
+                "status": "success",
+                "entities_count": stats.entities_count,
+                "phenotypes_count": stats.diseases_count,
+                "synonyms_count": stats.synonyms_count,
+                "definitions_count": stats.definitions_count,
+                "relationships_count": stats.relationships_count,
+                "duration_seconds": stats.duration_seconds,
+            }, indent=2))
+        else:
+            print(f"\nHPO Import Completed Successfully in {stats.duration_seconds:.2f}s!")
+            print(f"  - Ingested HP Phenotypes: {stats.diseases_count:,}")
+            print(f"  - Total Entities:         {stats.entities_count:,}")
+            print(f"  - Synonyms:               {stats.synonyms_count:,}")
+            print(f"  - Relationships:          {stats.relationships_count:,}")
+            print(f"{'='*60}\n")
+        return 0
+    except Exception as e:
+        if args.json:
+            print(json.dumps({"status": "error", "error": str(e)}))
+        else:
+            print(f"\n[ERROR] HPO import failed: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_match(args) -> int:
+    """Match clinical symptoms against candidate diseases and display phenotype overlap."""
+    db_path = Path(args.db)
+    if not db_path.exists():
+        print(f"Database file not found: {db_path}", file=sys.stderr)
+        return 1
+
+    with Findotype(db_path=db_path) as engine:
+        extracted = engine.extract_symptoms(args.symptoms)
+        results = engine.match_phenotypes(args.symptoms, limit=args.limit)
+
+    disclaimer = (
+        "Phenotype overlap scores indicate ontology symptom concordance, "
+        "NOT clinical diagnostic probability or medical diagnosis. "
+        "Consult a qualified healthcare professional."
+    )
+
+    if args.json:
+        data = {
+            "query": args.symptoms,
+            "disclaimer": disclaimer,
+            "extracted_phenotypes": [
+                {
+                    "term_id": s.matched_term_id,
+                    "term_name": s.matched_term_name,
+                    "raw_text": s.raw_query_text,
+                    "information_content": s.information_content,
+                }
+                for s in extracted
+            ],
+            "candidate_diseases": [
+                {
+                    "disease_id": r.disease_id,
+                    "disease_name": r.disease_name,
+                    "score": r.score,
+                    "query_coverage_pct": r.query_coverage_pct,
+                    "matched_count": r.matched_count,
+                    "total_query_count": r.total_query_count,
+                    "matched_phenotypes": [
+                        {"id": p.id, "name": p.name, "ic": p.ic, "source": p.source}
+                        for p in r.matched_phenotypes
+                    ],
+                    "unmatched_phenotypes": [
+                        {"id": p.id, "name": p.name, "ic": p.ic}
+                        for p in r.unmatched_phenotypes
+                    ],
+                    "definition": r.disease_definition,
+                }
+                for r in results
+            ],
+        }
+        print(json.dumps(data, indent=2))
+        return 0
+
+    print(f"\n{'='*78}")
+    print(f"Clinical Symptom & Phenotype Disease Explorer")
+    print(f"{'='*78}")
+    print(f"Input Query: \"{args.symptoms}\"")
+
+    if not extracted:
+        print("\nNo recognizable clinical symptoms or phenotypes found in query.")
+        print(f"{'='*78}\n")
+        return 0
+
+    print(f"\nRecognized Phenotypes ({len(extracted)}):")
+    for s in extracted:
+        print(f"  - [{s.matched_term_id}] {s.matched_term_name:<20} (from '{s.raw_query_text}', IC: {s.information_content:.2f})")
+
+    print("\n" + ">" * 78)
+    print(" MEDICAL DISCLAIMER:")
+    print(" Scores represent ontology phenotype concordance, NOT a clinical diagnosis")
+    print(" or medical probability. Consult a licensed physician for clinical decisions.")
+    print("<" * 78)
+
+    print(f"\nCandidate Diseases with Phenotype Overlap ({len(results)} matches):")
+    print("-" * 78)
+
+    if not results:
+        print("No matching candidate diseases found.")
+    else:
+        for idx, r in enumerate(results, 1):
+            print(f"{idx:2d}. [{r.disease_id}] {r.disease_name}")
+            print(f"    Query Coverage:       {r.query_coverage_pct:.1f}% (Matched: {r.matched_count}/{r.total_query_count})")
+            print(f"    Phenotypic Overlap:   {r.score * 100:.1f}%")
+            
+            # Matched phenotypes
+            for p in r.matched_phenotypes:
+                print(f"      ✓ [{p.id}] {p.name} (IC: {p.ic:.2f})")
+            # Unmatched phenotypes
+            for p in r.unmatched_phenotypes:
+                print(f"      ✗ [{p.id}] {p.name} (IC: {p.ic:.2f})")
+
+            if r.disease_definition:
+                short_def = (
+                    r.disease_definition[:110] + "..."
+                    if len(r.disease_definition) > 110
+                    else r.disease_definition
+                )
+                print(f"    Clinical Summary:     {short_def}")
+            print()
+
+    print(f"{'='*78}\n")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build command line argument parser."""
     common_parser = argparse.ArgumentParser(add_help=False)
@@ -438,13 +602,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     # validate
     p_val = subparsers.add_parser("validate", parents=[common_parser], help="Validate a doid.json file structure")
-    p_val.add_argument("file", help="Path to doid.json")
+    p_val.add_argument("file", help="Path to doid.json or hp-base.json")
 
     # import
     p_imp = subparsers.add_parser("import", parents=[common_parser], help="Import doid.json into SQLite database")
     p_imp.add_argument("file", help="Path to doid.json")
     p_imp.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Target SQLite database path")
     p_imp.add_argument("--include-obsolete", action="store_true", help="Include deprecated/obsolete terms")
+
+    # import-hpo
+    p_hpo = subparsers.add_parser("import-hpo", parents=[common_parser], help="Import hp-base.json into SQLite database")
+    p_hpo.add_argument("file", help="Path to hp-base.json")
+    p_hpo.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Target SQLite database path")
+    p_hpo.add_argument("--include-obsolete", action="store_true", help="Include deprecated/obsolete terms")
 
     # stats
     p_stat = subparsers.add_parser("stats", parents=[common_parser], help="Show database summary statistics and provenance")
@@ -460,6 +630,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_insp = subparsers.add_parser("inspect", parents=[common_parser], help="Inspect a specific DOID term in detail")
     p_insp.add_argument("doid", help="Disease identifier (e.g. DOID:0001816 or 0001816)")
     p_insp.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite database")
+
+    # match (symptoms to diseases)
+    p_match = subparsers.add_parser("match", parents=[common_parser], help="Match clinical symptoms to candidate diseases with match %")
+    p_match.add_argument("symptoms", help="Natural language symptoms string (e.g. 'I have fever, cough, nausea')")
+    p_match.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite database")
+    p_match.add_argument("-n", "--limit", type=int, default=10, help="Maximum candidate diseases to return")
 
     return parser
 
@@ -477,9 +653,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         "download": cmd_download,
         "validate": cmd_validate,
         "import": cmd_import,
+        "import-hpo": cmd_import_hpo,
         "stats": cmd_stats,
         "search": cmd_search,
         "inspect": cmd_inspect,
+        "match": cmd_match,
     }
 
     cmd_fn = commands.get(args.command)

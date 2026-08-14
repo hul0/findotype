@@ -1,7 +1,6 @@
 """Data normalization routines for synonyms, cross-references, definitions, and metadata."""
 
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional
 
 from findotype.models.disease import CrossReference, Definition, Synonym
 from findotype.ontology.curie import uri_to_curie

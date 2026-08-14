@@ -7,13 +7,22 @@ from typing import Any, Dict, List, Optional, Union
 from findotype.config import DEFAULT_DB_PATH
 from findotype.db.connection import get_connection
 from findotype.importers.doid import DiseaseOntologyImporter
+from findotype.importers.hpo import HpoImporter
 from findotype.models.disease import CrossReference, Definition, Disease, Synonym
-from findotype.models.provenance import DatasetMetadata, Provenance
+from findotype.models.phenotype import ExtractedSymptom, PhenotypeMatchResult
+from findotype.models.provenance import (
+    DatasetMetadata,
+    DatasetProvenance,
+    KnowledgeBaseMetadata,
+    Provenance,
+)
 from findotype.models.relationship import HierarchyNode, Relationship
 from findotype.models.search import SearchResult
 from findotype.models.stats import DatabaseStats, ImportStats
 from findotype.repositories.disease_repo import DiseaseRepository
 from findotype.repositories.metadata_repo import MetadataRepository
+from findotype.services.matcher import PhenotypeMatcher
+from findotype.services.symptom_parser import SymptomParser
 
 
 class Findotype:
@@ -26,7 +35,7 @@ class Findotype:
         >>> disease = engine.get_disease("DOID:0001816")
         >>> print(disease.name)
         'angiosarcoma'
-        >>> results = engine.search_diseases("angiosarcoma")
+        >>> results = engine.match_phenotypes("I have fever, cough, nausea")
     """
 
     def __init__(
@@ -58,6 +67,16 @@ class Findotype:
         """Metadata and provenance repository instance."""
         return MetadataRepository(self.connection)
 
+    @property
+    def matcher(self) -> PhenotypeMatcher:
+        """Clinical phenotype matching engine."""
+        return PhenotypeMatcher(self.connection)
+
+    @property
+    def symptom_parser(self) -> SymptomParser:
+        """Clinical symptom parser."""
+        return SymptomParser(self.connection)
+
     def close(self) -> None:
         """Close the underlying SQLite connection."""
         if self._conn is not None:
@@ -69,6 +88,29 @@ class Findotype:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+    # --- Clinical Phenotype & Symptom Matching ---
+
+    def extract_symptoms(self, query: Union[str, List[str]]) -> List[ExtractedSymptom]:
+        """
+        Extract recognized ontology phenotype terms from natural language or text.
+        """
+        return self.symptom_parser.extract_symptoms(query)
+
+    def match_phenotypes(
+        self, query: Union[str, List[str]], limit: int = 10
+    ) -> List[PhenotypeMatchResult]:
+        """
+        Match user symptoms (e.g. 'I have fever, cough, nausea') against candidate diseases
+        and compute match percentages based on Information Content weighting.
+        """
+        return self.matcher.match_symptoms(query, limit=limit)
+
+    def match_symptoms(
+        self, query: Union[str, List[str]], limit: int = 10
+    ) -> List[PhenotypeMatchResult]:
+        """Alias for match_phenotypes."""
+        return self.match_phenotypes(query, limit=limit)
 
     # --- Core Disease Queries ---
 
@@ -143,9 +185,17 @@ class Findotype:
 
     # --- Provenance & Metadata ---
 
-    def get_provenance(self) -> Optional[Provenance]:
-        """Retrieve dataset provenance, version info, SHA256 checksum, and import time."""
-        return self.metadata_repo.get_provenance()
+    def get_provenance(self, dataset_name: Optional[str] = None) -> Optional[Provenance]:
+        """Retrieve provenance record for a specific dataset or the latest imported dataset."""
+        return self.metadata_repo.get_provenance(dataset_name=dataset_name)
+
+    def get_datasets(self) -> List[DatasetProvenance]:
+        """Retrieve list of all individual datasets ingested into this database."""
+        return self.metadata_repo.get_provenance_list()
+
+    def get_knowledge_base_metadata(self) -> KnowledgeBaseMetadata:
+        """Retrieve top-level Knowledge Base metadata and constituent datasets."""
+        return self.metadata_repo.get_knowledge_base_metadata()
 
     def get_metadata(self) -> DatasetMetadata:
         """Retrieve dataset title, description, license, root term, and version."""
@@ -174,7 +224,27 @@ class Findotype:
             include_obsolete=include_obsolete,
             source_url=source_url,
         )
-        # Re-initialize connection to see latest data
+        if self._conn is not None:
+            self._conn.close()
+            self._conn = None
+        return stats
+
+    def import_hpo(
+        self,
+        file_path: Union[str, Path],
+        include_obsolete: bool = False,
+        source_url: Optional[str] = None,
+    ) -> ImportStats:
+        """
+        Import an hp-base.json file into the configured database.
+        """
+        importer = HpoImporter()
+        stats = importer.import_dataset(
+            file_path=file_path,
+            db_path=self.db_path,
+            include_obsolete=include_obsolete,
+            source_url=source_url,
+        )
         if self._conn is not None:
             self._conn.close()
             self._conn = None
@@ -184,3 +254,8 @@ class Findotype:
     def validate_doid(file_path: Union[str, Path]) -> Dict[str, Any]:
         """Validate a doid.json file before importing."""
         return DiseaseOntologyImporter().validate(file_path)
+
+    @staticmethod
+    def validate_hpo(file_path: Union[str, Path]) -> Dict[str, Any]:
+        """Validate an hp-base.json file before importing."""
+        return HpoImporter().validate(file_path)

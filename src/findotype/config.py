@@ -1,11 +1,10 @@
 """Configuration defaults and SQLite settings for Findotype."""
 
-import os
 from pathlib import Path
 
 # Default file paths
 DEFAULT_DATA_DIR = Path("data")
-DEFAULT_DB_NAME = "disease_ontology.db"
+DEFAULT_DB_NAME = "findotype.db"
 DEFAULT_DB_PATH = DEFAULT_DATA_DIR / DEFAULT_DB_NAME
 
 # Upstream Disease Ontology source URL

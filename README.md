@@ -73,26 +73,40 @@ python -m findotype validate assets/DO/doid.json
 
 ### 3. Ingest into SQLite Database
 ```bash
-python -m findotype import assets/DO/doid.json --db data/disease_ontology.db
+python -m findotype import assets/DO/doid.json
 ```
 
-### 4. Inspect Database Summary & Provenance
+### 4. Ingest Human Phenotype Ontology (HPO)
 ```bash
-python -m findotype stats --db data/disease_ontology.db
+python -m findotype import-hpo assets/hp-base.json
 ```
 
-### 5. Multi-Tiered Search
+### 5. Match Clinical Symptoms to Diseases
 ```bash
-# Human-readable search
-python -m findotype search "tuberculosis" --db data/disease_ontology.db
+# Match natural language clinical symptoms with match percentage
+python -m findotype match "I have fever, cough, nausea"
 
 # Machine-readable JSON output
-python -m findotype search "angiosarcoma" --db data/disease_ontology.db --json
+python -m findotype match "I have fever, cough, nausea" --json
 ```
 
-### 6. Inspect Disease Details
+### 6. Inspect Database Summary & Provenance
 ```bash
-python -m findotype inspect DOID:0001816 --db data/disease_ontology.db
+python -m findotype stats
+```
+
+### 7. Multi-Tiered Search
+```bash
+# Human-readable search
+python -m findotype search "tuberculosis"
+
+# Machine-readable JSON output
+python -m findotype search "angiosarcoma" --json
+```
+
+### 8. Inspect Disease Details
+```bash
+python -m findotype inspect DOID:0001816
 ```
 
 ---
@@ -105,38 +119,42 @@ from findotype import Findotype
 # Initialize the engine (connects to local SQLite database)
 engine = Findotype("data/disease_ontology.db")
 
-# 1. Direct Disease Lookup (by DOID, numeric ID, or Alt ID)
+# 1. Clinical Symptom & Phenotype Disease Matching
+# Takes natural language text or structured lists and calculates match %
+matches = engine.match_phenotypes("I have fever, cough, nausea", limit=5)
+for m in matches:
+    matched_names = ", ".join(s.matched_term_name for s in m.matched_symptoms)
+    print(f"[{m.disease_id}] {m.disease_name} -> Match: {m.match_percentage}% (Matched: {matched_names})")
+
+# 2. Direct Disease Lookup (by DOID, numeric ID, or Alt ID)
 disease = engine.get_disease("DOID:0001816")
 print(disease.name)
 # 'angiosarcoma'
 
-print(disease.definition.definition)
-# 'A vascular cancer that derives_from the cells that line the walls of blood vessels or lymphatic vessels.'
-
-# 2. Synonyms and Cross References
+# 3. Synonyms and Cross References
 for synonym in disease.synonyms:
     print(f"[{synonym.scope}] {synonym.synonym}")
 
 for xref in disease.cross_references:
     print(f"{xref.db}: {xref.accession}")
 
-# 3. Multi-Tiered Full-Text Search
+# 4. Multi-Tiered Full-Text Search
 results = engine.search_diseases("angiosarcoma", limit=10)
 for res in results:
     print(f"[{res.id}] {res.name} (Match: {res.match_type.value}, Rank: {res.rank_score})")
 
-# 4. Ontology Hierarchy & Traversals
+# 5. Ontology Hierarchy & Traversals
 parents = engine.get_parents("DOID:0001816")
 children = engine.get_children("DOID:175")
 ancestors = engine.get_ancestors("DOID:0001816")  # Recursive CTE up to root
 descendants = engine.get_descendants("DOID:175") # Recursive CTE down hierarchy
 
-# 5. Connected Graph Relationships
+# 6. Connected Graph Relationships
 relationships = engine.get_relationships("DOID:0001816")
 for rel in relationships:
     print(f"--[{rel.predicate_label}]--> {rel.object_id} ({rel.object_name})")
 
-# 6. Data Provenance & Release Info
+# 7. Data Provenance & Release Info
 prov = engine.get_provenance()
 print(f"Release: {prov.dataset_version} | Imported: {prov.imported_at} | SHA256: {prov.source_sha256}")
 

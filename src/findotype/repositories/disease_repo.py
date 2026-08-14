@@ -3,7 +3,7 @@
 import json
 import re
 import sqlite3
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, List, Optional, Set
 
 from findotype.models.disease import CrossReference, Definition, Disease, Subset, Synonym
 from findotype.models.relationship import HierarchyNode, Relationship

@@ -1,7 +1,6 @@
 """Bidirectional URI <-> CURIE converter and ontology namespace handling."""
 
-import re
-from typing import Optional, Tuple
+
 
 OBO_BASE = "http://purl.obolibrary.org/obo/"
 W3C_RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"

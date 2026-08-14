@@ -51,7 +51,9 @@ class TestCLI(unittest.TestCase):
             ret = main(["stats", "--db", self.db_path, "--json"])
         self.assertEqual(ret, 0)
         data = json.loads(buf.getvalue())
-        self.assertEqual(data["provenance"]["dataset_name"], "Disease Ontology")
+        self.assertEqual(data["knowledge_base"]["name"], "Findotype Biomedical Knowledge Base")
+        self.assertGreater(len(data["datasets"]), 0)
+        self.assertEqual(data["datasets"][0]["name"], "Disease Ontology")
         self.assertGreater(data["counts"]["diseases"], 0)
 
     def test_cli_search(self):

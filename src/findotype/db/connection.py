@@ -3,7 +3,7 @@
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator, Optional, Union
+from typing import Generator, Union
 
 from findotype.config import SQLITE_PRAGMAS
 from findotype.db.schema import init_db_schema

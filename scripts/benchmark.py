@@ -4,10 +4,11 @@ import statistics
 import time
 from pathlib import Path
 
+from findotype.config import DEFAULT_DB_PATH
 from findotype.services.ontology_service import Findotype
 
 
-def benchmark(db_path: str = "data/disease_ontology.db"):
+def benchmark(db_path: str = str(DEFAULT_DB_PATH)):
     print(f"Running Findotype performance benchmark against {db_path}...")
     if not Path(db_path).exists():
         print(f"Error: {db_path} does not exist.")

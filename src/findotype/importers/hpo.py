@@ -1,4 +1,4 @@
-"""Disease Ontology (doid.json) transactional parser and SQLite importer."""
+"""Human Phenotype Ontology (hp-base.json) transactional parser and SQLite importer."""
 
 import hashlib
 import json
@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from findotype.config import DEFAULT_DOID_URL, SCHEMA_VERSION
+from findotype.config import SCHEMA_VERSION
 from findotype.db.connection import get_connection
 from findotype.importers.base import BaseImporter
 from findotype.importers.validator import OntologyValidator
@@ -22,8 +22,8 @@ from findotype.ontology.normalizer import (
 )
 
 
-class DiseaseOntologyImporter(BaseImporter):
-    """Parses OBO-JSON doid.json and imports all entities, relationships, and metadata."""
+class HpoImporter(BaseImporter):
+    """Parses OBO-JSON hp-base.json and ingests all HP terms into the unified database."""
 
     def validate(self, file_path: Union[str, Path]) -> Dict[str, Any]:
         """Validate the dataset file structure."""
@@ -45,16 +45,8 @@ class DiseaseOntologyImporter(BaseImporter):
         source_url: Optional[str] = None,
     ) -> ImportStats:
         """
-        Import doid.json into SQLite inside a single atomic transaction.
-
-        Args:
-            file_path: Path to doid.json file
-            db_path: Path to target SQLite database
-            include_obsolete: Whether to import deprecated/obsolete terms
-            source_url: Original download URL for provenance tracking
-
-        Returns:
-            ImportStats object with ingestion metrics
+        Import hp-base.json into SQLite inside a single atomic transaction.
+        Preserves existing DOID records while adding HP phenotypes and edges.
         """
         path = Path(file_path)
         if not path.exists():
@@ -68,62 +60,33 @@ class DiseaseOntologyImporter(BaseImporter):
 
         graphs = data.get("graphs", [])
         if not graphs:
-            raise ValueError("Invalid doid.json: no graphs found in JSON root")
+            raise ValueError("Invalid hp-base.json: no graphs found in JSON root")
 
-        # 1. First pass: extract ontology metadata and property labels
         main_graph = graphs[0]
         meta_dict = main_graph.get("meta", {})
         basic_props = meta_dict.get("basicPropertyValues", [])
 
         dataset_version = meta_dict.get("version")
         dataset_date = None
-        dataset_title = "Human Disease Ontology"
-        dataset_desc = None
-        dataset_license = "https://creativecommons.org/publicdomain/zero/1.0/"
-        root_term = None
-        extra_metadata: Dict[str, str] = {}
+        dataset_title = "Human Phenotype Ontology"
 
         for prop in basic_props:
             if not isinstance(prop, dict):
                 continue
             pred = prop.get("pred", "")
             val = str(prop.get("val", ""))
-
             if "versionInfo" in pred:
                 dataset_version = val
             elif "date" in pred:
                 dataset_date = val
-            elif "title" in pred:
-                dataset_title = val
-            elif "description" in pred:
-                dataset_desc = val
-            elif "license" in pred:
-                dataset_license = val
-            elif "IAO_0000700" in pred:
-                root_term = uri_to_curie(val)
-            else:
-                prop_key = uri_to_curie(pred)
-                extra_metadata[prop_key] = val
 
-        # Map of property URI -> human-readable label
+        # Extract property labels
         property_labels: Dict[str, str] = {
             "is_a": "is_a",
             "subClassOf": "is_a",
             "http://www.w3.org/2000/01/rdf-schema#subClassOf": "is_a",
         }
 
-        for graph in graphs:
-            for node in graph.get("nodes", []):
-                if not isinstance(node, dict):
-                    continue
-                node_type = node.get("type", "")
-                node_id = node.get("id", "")
-                lbl = node.get("lbl")
-                if lbl and (node_type == "PROPERTY" or "RO_" in node_id or "IDO_" in node_id or "IAO_" in node_id):
-                    property_labels[node_id] = lbl
-                    property_labels[uri_to_curie(node_id)] = lbl
-
-        # 2. Extract and normalize all nodes across all graphs
         entities_batch: List[Tuple] = []
         definitions_batch: List[Tuple] = []
         synonyms_batch: List[Tuple] = []
@@ -134,7 +97,7 @@ class DiseaseOntologyImporter(BaseImporter):
 
         seen_entities: Set[str] = set()
         obsolete_skipped = 0
-        diseases_count = 0
+        phenotypes_count = 0
 
         for graph in graphs:
             for node in graph.get("nodes", []):
@@ -160,10 +123,9 @@ class DiseaseOntologyImporter(BaseImporter):
                 name = node.get("lbl", "").strip() or curie_id
                 entity_type = node.get("type", "CLASS")
                 namespace = extract_namespace(curie_id)
-                if namespace == "DOID":
-                    diseases_count += 1
+                if namespace == "HP":
+                    phenotypes_count += 1
 
-                # Extract comments
                 comments = node_meta.get("comments", [])
                 comment_str = " ".join(comments) if comments else None
 
@@ -228,7 +190,6 @@ class DiseaseOntologyImporter(BaseImporter):
                 for alt in parsed_alts:
                     alt_ids_batch.append((alt, curie_id))
 
-                # Prepare FTS row: only for non-obsolete entities or if requested
                 syns_joined = " ".join(syn_texts)
                 fts_batch.append((
                     curie_id,
@@ -237,7 +198,7 @@ class DiseaseOntologyImporter(BaseImporter):
                     def_text,
                 ))
 
-        # 3. Extract and normalize all edges
+        # Extract edges
         relationships_batch: List[Tuple] = []
         seen_edges: Set[Tuple[str, str, str]] = set()
 
@@ -257,7 +218,6 @@ class DiseaseOntologyImporter(BaseImporter):
                 pred_curie = uri_to_curie(pred_raw)
                 obj_curie = uri_to_curie(obj_raw)
 
-                # Only link entities that exist in our database
                 if sub_curie not in seen_entities or obj_curie not in seen_entities:
                     continue
 
@@ -266,10 +226,7 @@ class DiseaseOntologyImporter(BaseImporter):
                     continue
                 seen_edges.add(edge_key)
 
-                pred_label = property_labels.get(
-                    pred_raw, property_labels.get(pred_curie, pred_curie)
-                )
-
+                pred_label = property_labels.get(pred_raw, pred_curie)
                 meta_json = json.dumps(edge.get("meta")) if edge.get("meta") else None
 
                 relationships_batch.append((
@@ -280,34 +237,25 @@ class DiseaseOntologyImporter(BaseImporter):
                     meta_json,
                 ))
 
-        # 4. Open DB and write inside a single atomic transaction
+        # Open DB and write inside a single atomic transaction (UPSERT / INSERT OR REPLACE)
         conn = get_connection(db_path, initialize_schema=True)
         try:
             with conn:
                 cursor = conn.cursor()
 
-                # Clean existing tables for deterministic idempotent re-runs
-                cursor.execute("DELETE FROM relationships;")
-                cursor.execute("DELETE FROM alt_ids;")
-                cursor.execute("DELETE FROM subsets;")
-                cursor.execute("DELETE FROM cross_references;")
-                cursor.execute("DELETE FROM synonyms;")
-                cursor.execute("DELETE FROM definitions;")
-                cursor.execute("DELETE FROM entities;")
-                cursor.execute("DELETE FROM metadata;")
-                cursor.execute("DELETE FROM provenance;")
-                cursor.execute("DELETE FROM disease_fts;")
+                # Clean existing HP terms if re-importing HPO
+                cursor.execute("DELETE FROM entities WHERE namespace = 'HP';")
 
-                # Batch insert entities
+                # Insert entities
                 cursor.executemany(
                     """
-                    INSERT INTO entities (id, uri, name, entity_type, namespace, is_obsolete, comment)
+                    INSERT OR REPLACE INTO entities (id, uri, name, entity_type, namespace, is_obsolete, comment)
                     VALUES (?, ?, ?, ?, ?, ?, ?);
                     """,
                     entities_batch,
                 )
 
-                # Batch insert definitions
+                # Insert definitions
                 cursor.executemany(
                     """
                     INSERT INTO definitions (entity_id, definition, sources_json)
@@ -316,7 +264,7 @@ class DiseaseOntologyImporter(BaseImporter):
                     definitions_batch,
                 )
 
-                # Batch insert synonyms
+                # Insert synonyms
                 cursor.executemany(
                     """
                     INSERT INTO synonyms (entity_id, synonym, scope, synonym_type, xrefs_json)
@@ -325,7 +273,7 @@ class DiseaseOntologyImporter(BaseImporter):
                     synonyms_batch,
                 )
 
-                # Batch insert cross-references
+                # Insert cross-references
                 cursor.executemany(
                     """
                     INSERT INTO cross_references (entity_id, db, accession, full_reference)
@@ -334,7 +282,7 @@ class DiseaseOntologyImporter(BaseImporter):
                     xrefs_batch,
                 )
 
-                # Batch insert subsets
+                # Insert subsets
                 cursor.executemany(
                     """
                     INSERT INTO subsets (entity_id, subset_name)
@@ -343,7 +291,7 @@ class DiseaseOntologyImporter(BaseImporter):
                     subsets_batch,
                 )
 
-                # Batch insert alt_ids
+                # Insert alt_ids
                 cursor.executemany(
                     """
                     INSERT OR REPLACE INTO alt_ids (alt_id, entity_id)
@@ -352,7 +300,7 @@ class DiseaseOntologyImporter(BaseImporter):
                     alt_ids_batch,
                 )
 
-                # Batch insert relationships
+                # Insert relationships
                 cursor.executemany(
                     """
                     INSERT INTO relationships (subject_id, predicate_id, predicate_label, object_id, meta_json)
@@ -375,7 +323,7 @@ class DiseaseOntologyImporter(BaseImporter):
 
                 stats = ImportStats(
                     entities_count=len(entities_batch),
-                    diseases_count=diseases_count,
+                    diseases_count=phenotypes_count,
                     synonyms_count=len(synonyms_batch),
                     definitions_count=len(definitions_batch),
                     xrefs_count=len(xrefs_batch),
@@ -386,23 +334,10 @@ class DiseaseOntologyImporter(BaseImporter):
                     duration_seconds=round(duration, 3),
                 )
 
-                stats_dict = {
-                    "entities_count": stats.entities_count,
-                    "diseases_count": stats.diseases_count,
-                    "synonyms_count": stats.synonyms_count,
-                    "definitions_count": stats.definitions_count,
-                    "xrefs_count": stats.xrefs_count,
-                    "relationships_count": stats.relationships_count,
-                    "subsets_count": stats.subsets_count,
-                    "alt_ids_count": stats.alt_ids_count,
-                    "obsolete_skipped": stats.obsolete_skipped,
-                    "duration_seconds": stats.duration_seconds,
-                }
+                # Clean existing HPO provenance record
+                cursor.execute("DELETE FROM provenance WHERE dataset_name = 'Human Phenotype Ontology';")
 
-                # Clean existing DOID provenance record
-                cursor.execute("DELETE FROM provenance WHERE dataset_name = 'Disease Ontology';")
-
-                # Record provenance for Disease Ontology
+                # Record provenance for HPO
                 cursor.execute(
                     """
                     INSERT INTO provenance (
@@ -411,31 +346,24 @@ class DiseaseOntologyImporter(BaseImporter):
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                     """,
                     (
-                        "Disease Ontology",
+                        "Human Phenotype Ontology",
                         dataset_version,
-                        dataset_date or "2026-07-31",
-                        dataset_license or "https://creativecommons.org/publicdomain/zero/1.0/",
-                        root_term or "DOID:4",
-                        source_url or DEFAULT_DOID_URL,
+                        dataset_date or "2026-06-23",
+                        "https://hpo.jax.org/app/license",
+                        "HP:0000001",
+                        source_url or "https://github.com/obophenotype/human-phenotype-ontology",
                         source_sha256,
                         SCHEMA_VERSION,
                         imported_at,
-                        json.dumps(stats_dict),
+                        json.dumps({
+                            "entities_count": stats.entities_count,
+                            "phenotypes_count": stats.diseases_count,
+                            "synonyms_count": stats.synonyms_count,
+                            "duration_seconds": stats.duration_seconds,
+                        }),
                     ),
                 )
 
-                # Record top-level Knowledge Base metadata
-                metadata_items = [
-                    ("knowledge_base_name", "Findotype Biomedical Knowledge Base"),
-                    ("schema_version", SCHEMA_VERSION),
-                    ("last_updated", imported_at),
-                ]
-                cursor.executemany(
-                    "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?);",
-                    metadata_items,
-                )
-
-            # Optimize SQLite database after full batch insertion
             conn.execute("PRAGMA optimize;")
 
         finally:

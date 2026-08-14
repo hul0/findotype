@@ -29,21 +29,22 @@ class TestProvenance(unittest.TestCase):
                     Path(extra).unlink()
 
     def test_provenance_record(self):
-        prov = self.engine.get_provenance()
+        prov = self.engine.get_provenance("Disease Ontology")
         self.assertIsNotNone(prov)
         self.assertEqual(prov.dataset_name, "Disease Ontology")
         self.assertEqual(prov.dataset_version, "2026-07-31")
         self.assertEqual(len(prov.source_sha256), 64)  # Valid SHA-256
         self.assertEqual(prov.schema_version, "1.0.0")
         self.assertIn("T", prov.imported_at)  # ISO timestamp
+        self.assertEqual(prov.root_term, "DOID:4")
         self.assertGreater(prov.stats["entities_count"], 0)
 
-    def test_metadata_record(self):
-        meta = self.engine.get_metadata()
-        self.assertEqual(meta.title, "Human Disease Ontology Test")
-        self.assertIn("sample test graph", meta.description)
-        self.assertEqual(meta.license, "https://creativecommons.org/publicdomain/zero/1.0/")
-        self.assertEqual(meta.root_term, "DOID:4")
+    def test_knowledge_base_metadata(self):
+        kb_meta = self.engine.get_knowledge_base_metadata()
+        self.assertEqual(kb_meta.name, "Findotype Biomedical Knowledge Base")
+        self.assertEqual(kb_meta.schema_version, "1.0.0")
+        self.assertGreater(len(kb_meta.datasets), 0)
+        self.assertEqual(kb_meta.datasets[0].dataset_name, "Disease Ontology")
 
     def test_database_stats(self):
         stats = self.engine.get_stats()
